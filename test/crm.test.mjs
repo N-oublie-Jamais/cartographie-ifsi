@@ -31,3 +31,16 @@ test('cold means a logged contact, not merely a CRM company; incomplete reads st
  assert.equal(commercialState(company,[]).status,'untouched');
  assert.equal(commercialState(company,[],false).status,'unknown');
 });
+test('a company without UAI is proposed by commune and name, never matched automatically',()=>{
+ const noUai={id:'7',uai:'',name:'CH du Mans - Direction',city:'Le Mans',zip:'72000',lifecycle:''};
+ const m=matchInstitute({...institute,name:'IFSI CH DU MANS (Le Mans - 72)'},[noUai,{...noUai,id:'8',city:'Tours',name:'Clinique de Tours'}]);
+ assert.equal(m.kind,'review');assert.equal(m.company,null);
+ assert.deepEqual(m.candidates.map(c=>c.id),['7']);assert.match(m.candidates[0].why,/commune/);
+ assert.equal(matchInstitute(institute,[{...noUai,city:'Tours',name:'Clinique de Tours'}]).kind,'missing');
+});
+test('buildRows attaches deal counts and names to candidates',async()=>{
+ const {buildRows}=await import('../lib/crm.mjs');
+ const c={id:'7',uai:'',name:'CH du Mans',city:'Le Mans',zip:'72000'};
+ const [row]=buildRows([institute],[c],{7:[{name:'Formation 2026',properties:{hs_is_closed:'false'}}]},{});
+ assert.equal(row.match.candidates[0].dealCount,1);assert.equal(row.match.candidates[0].openCount,1);assert.deepEqual(row.match.candidates[0].dealNames,['Formation 2026']);
+});

@@ -16,3 +16,10 @@ test('upstream errors never echo tokens or provider response bodies',async()=>{
  const client=new HubSpot('do-not-leak','6008870',async()=>new Response('do-not-leak',{status:401}));
  await assert.rejects(client.loadDeals(['1']),e=>!e.message.includes('do-not-leak')&&e.message.includes('Jeton'));
 });
+test('companies linked to any deal are discovered across deal pages, tolerating deals without company',async()=>{
+ const urls=[];
+ const client=new HubSpot('secret','6008870',async(url)=>{urls.push(url);
+  if(url.includes('/objects/deals?'))return Response.json(url.includes('after=')?{results:[{id:'12'}]}:{results:[{id:'11'}],paging:{next:{after:'p2'}}});
+  return Response.json({status:'COMPLETE_WITH_ERRORS',errors:[{message:'no association'}],results:[{from:{id:'11'},to:[{toObjectId:5},{toObjectId:6}]}]});});
+ assert.deepEqual((await client.loadDealCompanyIds()).sort(),['5','6']);assert.ok(urls.some(u=>u.includes('/associations/deals/companies/')));
+});

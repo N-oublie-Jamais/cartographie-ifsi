@@ -32,7 +32,8 @@ export async function createApp({dataDir=process.env.DATA_DIR||path.join(root,'r
  async function refresh(){
   if(refreshing)return refreshing;
   refreshing=(async()=>{try{const client=hub();await client.validate();
-   const companies=await client.loadCompanies(institutes.map(i=>i.uai),Object.values(overrides).map(x=>x.companyId).filter(Boolean));
+   const dealCompanyIds=await client.loadDealCompanyIds();
+   const companies=await client.loadCompanies(institutes.map(i=>i.uai),[...Object.values(overrides).map(x=>x.companyId).filter(Boolean),...dealCompanyIds]);
    const dealsByCompany=await client.loadDeals(companies.map(c=>c.id));
    snapshot={companies,dealsByCompany,lastSynced:new Date().toISOString(),error:null};searched.clear();
   }catch(error){snapshot.error=error.message;throw error;}finally{refreshing=null;}})();return refreshing;

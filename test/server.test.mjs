@@ -8,7 +8,7 @@ import {createApp,passwordHash} from '../server.mjs';
 test('server protects CRM, rejects CSRF, keeps stale snapshots, and saves local matching only',async t=>{
  const dataDir=await mkdtemp(path.join(tmpdir(),'atlas-test-'));
  let fail=false,calls=0;
- const factory=()=>({validate:async()=>{},loadCompanies:async()=>{calls++;if(fail)throw Error('HubSpot indisponible');return [{id:'1',uai:'0721317R',city:'Le Mans',name:'IFSI test',lifecycle:'customer'}];},loadDeals:async()=>({'1':[{id:'d',properties:{hs_is_closed:'false'}}]}),searchCompanies:async()=>({total:1,companies:[{id:'2',name:'Autre fiche test',city:'Le Mans',uai:''}]})});
+ const factory=()=>({validate:async()=>{},loadDealCompanyIds:async()=>[],loadCompanies:async()=>{calls++;if(fail)throw Error('HubSpot indisponible');return [{id:'1',uai:'0721317R',city:'Le Mans',name:'IFSI test',lifecycle:'customer'}];},loadDeals:async()=>({'1':[{id:'d',properties:{hs_is_closed:'false'}}]}),searchCompanies:async()=>({total:1,companies:[{id:'2',name:'Autre fiche test',city:'Le Mans',uai:''}]})});
  // Host is fixed but the listener uses an OS-allocated ephemeral port for tests.
  const origin='http://127.0.0.1:8787';
  const {server}=await createApp({dataDir,origin,hubFactory:factory,config:{token:'hidden-token',portalId:'6008870',passwordHash:passwordHash('a long test password')}});
