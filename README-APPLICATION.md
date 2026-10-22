@@ -51,7 +51,21 @@ Une transaction dont l’état est inconnu n’est jamais présumée ouverte. Le
 
 ## Correspondances
 
-Rapprochement automatique seulement si code UAI unique, commune identique après normalisation et absence d’un intitulé désignant exclusivement une autre profession (maïeutique, ergothérapie, etc.). Cela reste une inférence modifiable. Plusieurs fiches pour le même UAI, une commune différente ou l’absence d’UAI nécessitent une validation.
+Le connecteur lit les entreprises associées aux transactions, les fiches portant un UAI de l’atlas et les entreprises déjà qualifiées `customer`/`evangelist`. Il ne parcourt pas toutes les entreprises importées sans filtre.
+
+Le rapprochement donne priorité aux **clients dont l’identité concorde**, puis à leur UAI explicite. Un client est reconnu par son cycle de vie ou une transaction gagnée. Les nouveaux chemins automatiques sont :
+
+- UAI identique et commune concordante ; la commune est normalisée pour retirer le code postal et la mention Cedex.
+- Sans UAI, intitulé d’institut infirmier identique et commune identique, ou nom distinctif concordant et commune identique.
+- Domaine web exact et désignation infirmière explicite, avec commune concordante ou non renseignée.
+
+Un UAI contradictoire, une commune contradictoire, une école d’une autre profession ou une fiche représentant une session empêchent le rapprochement automatique. Un hôpital générique client n’est pas automatiquement assimilé à son IFSI. Un domaine partagé entre plusieurs IFSI reste à vérifier ; les sous-domaines ne sont pas fusionnés avec le domaine parent.
+
+Les fiches clientes ne sont prioritaires qu’après établissement de l’identité ; la seule ville, un montant proche ou un deal ouvert ne suffisent jamais. Parmi plusieurs fiches clientes, un UAI explicite concordant prévaut sur une inférence par nom ou domaine. Si plusieurs fiches restent aussi certaines, le cas est à valider.
+
+Les correspondances sont qualifiées `Certain`, `Probable`, `À valider` ou `Non résolu` et affichent leur justification. Les règles automatiques restent des inférences modifiables. Les associations et exclusions manuelles sont conservées, y compris après synchronisation.
+
+Ces règles adaptent le skill utilisateur `hubspot-notion-pennylane-reconciliation` au rapprochement des établissements dans la carte. Cette version ne connecte pas l’application aux API Notion/Pennylane et ne prétend pas vérifier les paiements ou devis dans ces systèmes. Elle ne modifie aucun enregistrement HubSpot, Notion ou Pennylane.
 
 Dans **HubSpot & correspondances**, choisir un institut, ouvrir les fiches candidates ou rechercher l’entreprise par nom. **Associer cette fiche** enregistre le choix dans l’atlas. Cette opération ne modifie pas HubSpot. Il est possible d’écarter une correspondance ou de revenir au rapprochement automatique.
 

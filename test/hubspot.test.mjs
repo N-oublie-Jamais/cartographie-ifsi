@@ -23,3 +23,16 @@ test('companies linked to any deal are discovered across deal pages, tolerating 
   return Response.json({status:'COMPLETE_WITH_ERRORS',errors:[{message:'no association'}],results:[{from:{id:'11'},to:[{toObjectId:5},{toObjectId:6}]}]});});
  assert.deepEqual((await client.loadDealCompanyIds()).sort(),['5','6']);assert.ok(urls.some(u=>u.includes('/associations/deals/companies/')));
 });
+test('known customers without UAI or deals are loaded across pages with web identity',async()=>{
+ const bodies=[];
+ const client=new HubSpot('secret','6008870',async(url,opt)=>{
+  const body=JSON.parse(opt.body);bodies.push(body);
+  if(body.filterGroups?.[0].filters[0].propertyName==='code_uai')return Response.json({results:[]});
+  return Response.json(body.after?{results:[{id:'2',properties:{name:'Second IFSI',lifecyclestage:'customer',website:'https://second.fr'}}]}:{results:[{id:'1',properties:{name:'Premier IFSI',lifecyclestage:'customer',domain:'premier.fr'}}],paging:{next:{after:'next'}}});
+ });
+ const companies=await client.loadCompanies(['0721317R']);
+ assert.equal(companies.length,2);assert.equal(companies[0].domain,'premier.fr');assert.equal(companies[1].website,'https://second.fr');
+ assert.ok(bodies.every(b=>b.properties.includes('domain')&&b.properties.includes('website')));
+ assert.deepEqual(bodies[1].filterGroups[0].filters[0].values,['customer','evangelist']);
+ assert.equal(bodies[2].after,'next');
+});
