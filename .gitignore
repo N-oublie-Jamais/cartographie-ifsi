@@ -1,0 +1,14 @@
+# Configuration privée et secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Données locales et dépendances
+runtime/
+node_modules/
+
+# Fichiers temporaires
+.DS_Store
+*.log

@@ -1,0 +1,4 @@
+Atlas NJ — dossier de déploiement Hostinger
+Préparé le 22 octobre 2026
+Source application : fd029b91bd17a74708fe0967e21d0c0042455ef6
+Configuration Traefik à adapter au VPS.

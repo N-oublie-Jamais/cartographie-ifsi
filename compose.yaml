@@ -1,0 +1,34 @@
+name: nj-atlas
+
+services:
+  atlas:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8787"
+      DATA_DIR: /data
+      APP_ORIGIN: "https://${ATLAS_DOMAIN:?Renseigner ATLAS_DOMAIN dans .env}"
+    volumes:
+      - atlas-data:/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik-proxy}"
+      - "traefik.http.routers.nj-atlas.rule=Host(`${ATLAS_DOMAIN}`)"
+      - "traefik.http.routers.nj-atlas.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.nj-atlas.tls=true"
+      - "traefik.http.routers.nj-atlas.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.nj-atlas.loadbalancer.server.port=8787"
+
+volumes:
+  atlas-data:
+
+networks:
+  proxy:
+    external: true
+    name: "${TRAEFIK_NETWORK:-traefik-proxy}"

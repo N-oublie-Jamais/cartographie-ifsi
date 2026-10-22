@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {request} from 'node:http';
+import {createApp,passwordHash} from '../server.mjs';
+test('server protects CRM, rejects CSRF, keeps stale snapshots, and saves local matching only',async t=>{
+ const dataDir=await mkdtemp(path.join(tmpdir(),'atlas-test-'));
+ let fail=false,calls=0;
+ const factory=()=>({validate:async()=>{},loadCompanies:async()=>{calls++;if(fail)throw Error('HubSpot indisponible');return [{id:'1',uai:'0721317R',city:'Le Mans',name:'IFSI test',lifecycle:'customer'}];},loadDeals:async()=>({'1':[{id:'d',properties:{hs_is_closed:'false'}}]}),searchCompanies:async()=>({total:1,companies:[{id:'2',name:'Autre fiche test',city:'Le Mans',uai:''}]})});
+ // Host is fixed but the listener uses an OS-allocated ephemeral port for tests.
+ const origin='http://127.0.0.1:8787';
+ const {server}=await createApp({dataDir,origin,hubFactory:factory,config:{token:'hidden-token',portalId:'6008870',passwordHash:passwordHash('a long test password')}});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ t.after(async()=>{await new Promise(r=>server.close(r));await rm(dataDir,{recursive:true,force:true});});
+ const base=`http://127.0.0.1:${server.address().port}`;
+ const call=(url,body,more={})=>new Promise((resolve,reject)=>{const req=request(base+url,{method:body?'POST':'GET',headers:{Host:'127.0.0.1:8787',Origin:origin,'Content-Type':'application/json',...more}},res=>{let text='';res.on('data',c=>text+=c);res.on('end',()=>resolve(new Response(text,{status:res.statusCode,headers:res.headers})));});req.on('error',reject);req.end(body?JSON.stringify(body):undefined);});
+ assert.equal((await call('/api/crm')).status,401);
+ assert.equal((await call('/api/login',{password:'a long test password'},{Origin:'https://evil.test'})).status,403);
+ const login=await call('/api/login',{password:'a long test password'}),session=await login.json(),cookie=login.headers.get('set-cookie').split(';')[0];
+ assert.ok(cookie.includes('nj_session='));assert.ok(login.headers.get('set-cookie').includes('HttpOnly'));
+ assert.equal((await call('/api/refresh',{}, {Cookie:cookie})).status,403);
+ const headers={Cookie:cookie,'X-CSRF-Token':session.csrf};
+ const sync=await(await call('/api/refresh',{},headers)).json();const row=sync.rows.find(x=>x.uai==='0721317R');assert.equal(row.client,true);assert.equal(row.hot,true);assert.equal(calls,1);
+ assert.ok(!JSON.stringify(sync).includes('hidden-token'));
+ fail=true;assert.equal((await call('/api/refresh',{},headers)).status,502);
+ const stale=await(await call('/api/crm',null,headers)).json();assert.equal(stale.lastSynced,sync.lastSynced);assert.equal(stale.error,'HubSpot indisponible');
+ fail=false;await call('/api/search',{query:'test'},headers);
+ assert.equal((await call('/api/match',{uai:'0721317R',companyId:'2'},headers)).status,200);
+ const saved=JSON.parse(await readFile(path.join(dataDir,'matches.json'),'utf8'));assert.equal(saved['0721317R'].companyId,'2');
+ assert.equal((await call('/runtime/config.json')).status,404);
+ assert.equal((await call('/api/logout',{},headers)).status,200);assert.equal((await call('/api/crm',null,headers)).status,401);
+});
