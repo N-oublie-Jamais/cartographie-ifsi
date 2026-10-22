@@ -10,7 +10,7 @@ Cette configuration suppose Docker Compose et un **Traefik existant**, configur�
 
 Dans Hostinger : VPS → Gérer → Docker Manager. Repérer le projet Traefik et sa configuration. Vérifier :
 
-- le réseau Docker partagé (valeur proposée : `traefik-proxy`) ;
+- le réseau Docker partagé (valeur proposée : `root_default`) ;
 - le point d’entrée HTTPS (valeur proposée : `websecure`) ;
 - le résolveur de certificats (valeur proposée : `letsencrypt`).
 

@@ -18,7 +18,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik-proxy}"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-root_default}"
       - "traefik.http.routers.cartographie-ifsi.rule=Host(`${ATLAS_DOMAIN}`)"
       - "traefik.http.routers.cartographie-ifsi.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
       - "traefik.http.routers.cartographie-ifsi.tls=true"
@@ -31,4 +31,4 @@ volumes:
 networks:
   proxy:
     external: true
-    name: "${TRAEFIK_NETWORK:-traefik-proxy}"
+    name: "${TRAEFIK_NETWORK:-root_default}"
