@@ -42,13 +42,13 @@ ssh UTILISATEUR@IP_DU_VPS
 Pour un dépôt privé, configurer sur le VPS une clé SSH de déploiement dédiée, autorisée en lecture seule sur ce dépôt. Ne pas copier votre clé privée personnelle sur le VPS. Puis :
 
 ```sh
-sudo mkdir -p /opt/atlas-nj
-sudo chown "$(id -u):$(id -g)" /opt/atlas-nj
-git clone URL_SSH_DU_DEPOT /opt/atlas-nj
-cd /opt/atlas-nj
+sudo mkdir -p /opt/cartographie-ifsi
+sudo chown "$(id -u):$(id -g)" /opt/cartographie-ifsi
+git clone URL_SSH_DU_DEPOT /opt/cartographie-ifsi
+cd /opt/cartographie-ifsi
 ```
 
-Le dossier cible doit être vide avant le clone. Toutes les commandes suivantes se font dans `/opt/atlas-nj`, sur le VPS. Si votre utilisateur n’a pas accès à Docker, employer `sudo docker` à la place de `docker`.
+Le dossier cible doit être vide avant le clone. Toutes les commandes suivantes se font dans `/opt/cartographie-ifsi`, sur le VPS. Si votre utilisateur n’a pas accès à Docker, employer `sudo docker` à la place de `docker`.
 
 ## 4. Créer la configuration privée
 
@@ -106,7 +106,7 @@ Ne pas publier la sortie de `docker compose config` : elle peut révéler les se
 Pour récupérer une nouvelle version du code sur le VPS :
 
 ```sh
-cd /opt/atlas-nj
+cd /opt/cartographie-ifsi
 git pull --ff-only
 docker compose up -d --build
 ```

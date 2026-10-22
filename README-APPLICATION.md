@@ -70,9 +70,9 @@ Pour changer de jeton local, arrêter le serveur, mettre à jour `runtime/config
 Le code est prêt pour un hébergement Node/Docker. **Aucun hébergement externe n’est configuré dans cette livraison.** Fournir les variables de `.env.example` depuis le gestionnaire de secrets de l’hébergeur. En production, le démarrage exige APP_ORIGIN en HTTPS ; la terminaison TLS est à fournir par le proxy ou l’hébergeur. Ne pas publier directement le port 8787 sur Internet sans ce proxy.
 
 ```sh
-docker build -t nj-atlas .
-docker volume create nj-atlas-data
-docker run --env-file .env -p 127.0.0.1:8787:8787 -v nj-atlas-data:/data nj-atlas
+docker build -t cartographie-ifsi .
+docker volume create cartographie-ifsi-data
+docker run --env-file .env -p 127.0.0.1:8787:8787 -v cartographie-ifsi-data:/data cartographie-ifsi
 ```
 
 Le volume `/data` conserve les correspondances. Les variables HUBSPOT_ACCESS_TOKEN, HUBSPOT_PORTAL_ID et APP_PASSWORD doivent être toutes renseignées pour la configuration par environnement. La page de configuration du jeton est désactivée en production. APP_ORIGIN doit correspondre exactement à l’adresse visitée, sans sous-chemin.

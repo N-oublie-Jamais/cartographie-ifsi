@@ -1,4 +1,4 @@
-name: nj-atlas
+name: cartographie-ifsi
 
 services:
   atlas:
@@ -19,11 +19,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik-proxy}"
-      - "traefik.http.routers.nj-atlas.rule=Host(`${ATLAS_DOMAIN}`)"
-      - "traefik.http.routers.nj-atlas.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
-      - "traefik.http.routers.nj-atlas.tls=true"
-      - "traefik.http.routers.nj-atlas.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
-      - "traefik.http.services.nj-atlas.loadbalancer.server.port=8787"
+      - "traefik.http.routers.cartographie-ifsi.rule=Host(`${ATLAS_DOMAIN}`)"
+      - "traefik.http.routers.cartographie-ifsi.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.cartographie-ifsi.tls=true"
+      - "traefik.http.routers.cartographie-ifsi.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.cartographie-ifsi.loadbalancer.server.port=8787"
 
 volumes:
   atlas-data:
