@@ -3,6 +3,7 @@ let crmSession=null,crmSnapshot=null,crmReady=false,crmBusy=false;
 window.crmMode='groups';
 const crmPalette={client:'#168355',hot:'#b85b08',cold:'#0343e5',untouched:'#737d8d',unknown:'#737d8d'};
 const crmNames={client:'Client',hot:'Transaction ouverte',cold:'Prospect froid',untouched:'Aucun contact enregistré',unknown:'À rapprocher'};
+window.crmClientsOnly=false;
 window.crmColor=x=>crmPalette[x.crm?.status||'unknown'];
 async function api(url,payload){
  const response=await fetch(url,{method:payload?'POST':'GET',headers:payload?{'Content-Type':'application/json','X-CSRF-Token':crmSession?.csrf||''}:{},body:payload?JSON.stringify(payload):undefined});
@@ -32,9 +33,19 @@ function applyCRM(){
  $('crm-sync-state').title=crmSnapshot.error||'';$('crm-refresh').disabled=crmBusy;
  updateCRMMap();if(selected)window.renderCRMDetail(data.find(x=>x.uai===selected));
 }
+function updateClientsChip(){
+ let chip=$('clients-chip');
+ if(!crmSnapshot?.lastSynced){chip?.remove();if(window.crmClientsOnly){window.crmClientsOnly=false;for(const x of data)markers.get(x.uai)?.setIcon(pinIcon(x));}return;}
+ if(!chip){chip=document.createElement('button');chip.id='clients-chip';chip.className='clients-chip';chip.type='button';chip.onclick=()=>{window.crmClientsOnly=!window.crmClientsOnly;for(const x of data)markers.get(x.uai)?.setIcon(pinIcon(x));updateClientsChip();};document.querySelector('.mapspace').append(chip);}
+ const n=(filtered||[]).filter(x=>x.crm?.client).length,scoped=Boolean($('group').value||$('region').value||$('status').value||$('search').value.trim());
+ chip.setAttribute('aria-pressed',String(window.crmClientsOnly));
+ chip.innerHTML=`<i></i>${n} client${n>1?'s':''}${scoped?' dans la sélection':''}`;
+ chip.title=window.crmClientsOnly?'Afficher tous les instituts normalement':'Mettre les clients en avant sur la carte';
+}
+window.crmAfterFilter=updateClientsChip;
 function updateCRMMap(){
  window.crmMode=$('crm-mode').value;for(const x of data)markers.get(x.uai)?.setIcon(pinIcon(x));
- if(cluster?.refreshClusters)cluster.refreshClusters();applyFilters();
+ if(cluster?.refreshClusters)cluster.refreshClusters();applyFilters();updateClientsChip();
  $('crm-map-legend')?.remove();
  if(window.crmMode==='commercial'){
   const legend=document.createElement('div');legend.id='crm-map-legend';legend.innerHTML='<b>RELATION COMMERCIALE</b>'+Object.entries(crmNames).map(([s,n])=>`<span><i style="background:${crmPalette[s]}"></i>${esc(n)}</span>`).join('')+'<span>✓ Badge client, cumulable avec une transaction ouverte</span>';
@@ -80,5 +91,5 @@ async function refreshCRM(){
 }
 $('crm-mode').onchange=updateCRMMap;$('crm-filter').onchange=()=>applyFilters();
 $('crm-refresh').onclick=refreshCRM;$('crm-open').onclick=()=>{statusPanel();$('crm-dialog').showModal();};$('crm-close').onclick=()=>$('crm-dialog').close();
-window.addEventListener('atlas-ready',()=>{crmReady=true;if(cluster?.options){const baseIcon=cluster.options.iconCreateFunction;cluster.options.iconCreateFunction=c=>{if(window.crmMode!=='commercial')return baseIcon(c);const counts={};for(const marker of c.getAllChildMarkers()){const row=data.find(x=>markers.get(x.uai)===marker)?.crm;const key=row?.status||'unknown';counts[key]=(counts[key]||0)+1;}return L.divIcon({html:`<span>${c.getChildCount()}</span><small class="cluster-crm">${Object.entries(counts).map(([s,n])=>`<i style="background:${crmPalette[s]}" title="${esc(crmNames[s])} : ${n}"></i>`).join('')}</small>`,className:'cluster',iconSize:[37,37]});};}applyCRM();});
+window.addEventListener('atlas-ready',()=>{crmReady=true;if(cluster?.options){const baseIcon=cluster.options.iconCreateFunction;cluster.options.iconCreateFunction=c=>{if(window.crmMode!=='commercial')return baseIcon(c);const counts={};for(const marker of c.getAllChildMarkers()){const row=data.find(x=>markers.get(x.uai)===marker)?.crm;const key=row?.status||'unknown';counts[key]=(counts[key]||0)+1;}return L.divIcon({html:`<span>${c.getChildCount()}</span><small class="cluster-crm">${Object.entries(counts).map(([s,n])=>`<i style="background:${crmPalette[s]}" title="${esc(crmNames[s])} : ${n}"></i>`).join('')}</small>${clientBadge(c)}`,className:'cluster',iconSize:[37,37]});};}applyCRM();});
 (async()=>{try{crmSession=await api('/api/session');if(!crmSession.configured)return showSetup(crmSession.setupAllowed);if(!crmSession.authenticated)return showLogin();$('auth-screen').hidden=true;$('crm-open').textContent='HubSpot & correspondances';await getCRM();}catch(err){$('auth-content').textContent='Connexion au serveur impossible : '+err.message;}})();

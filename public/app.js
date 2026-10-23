@@ -8,6 +8,8 @@ let data=[],filtered=[],groups=[],colors={},markers=new Map(),map=null,cluster=n
 const places={metro:{center:[46.55,2.6],zoom:6},antilles:{bounds:[[14.25,-61.35],[16.65,-60.7]]},guyane:{center:[4.6,-53.1],zoom:7},indien:{bounds:[[-21.6,44.7],[-12.3,56.1]]},polynesie:{center:[-17.56,-149.57],zoom:11}};
 function color(g){return colors[g]||'#8c9692';}
 function markerColor(x){return window.crmMode==='commercial'?(window.crmColor?.(x)||'#939aab'):color(x.group);}
+const dataIndex=new Map();
+function clientBadge(c){const n=c.getAllChildMarkers().filter(m=>dataIndex.get(m.options.uai)?.crm?.client).length;return n?`<b class="cluster-clients" title="${n} client${n>1?'s':''}">✓ ${n}</b>`:'';}
 function initMap(){
  if(!window.L){$('map').innerHTML='<div class="map-error">La carte n’a pas pu se charger. Les instituts restent accessibles dans la liste.</div>';return;}
  map=L.map('map',{zoomControl:false,minZoom:2,maxZoom:18,worldCopyJump:true}).setView(places.metro.center,6);
@@ -31,14 +33,14 @@ function initMap(){
  }
  let savedBackground='light';try{savedBackground=localStorage.getItem('nj-ifsi-basemap')||'light';}catch{}
  setBackground(savedBackground);$('basemap').onchange=e=>setBackground(e.target.value);
- if(L.markerClusterGroup){cluster=L.markerClusterGroup({maxClusterRadius:35,showCoverageOnHover:false,spiderfyOnMaxZoom:true,iconCreateFunction:c=>L.divIcon({html:'<span>'+c.getChildCount()+'</span>',className:'cluster',iconSize:[37,37]})}).addTo(map);}else{cluster=L.layerGroup().addTo(map);}
+ if(L.markerClusterGroup){cluster=L.markerClusterGroup({maxClusterRadius:35,showCoverageOnHover:false,spiderfyOnMaxZoom:true,iconCreateFunction:c=>L.divIcon({html:'<span>'+c.getChildCount()+'</span>'+clientBadge(c),className:'cluster',iconSize:[37,37]})}).addTo(map);}else{cluster=L.layerGroup().addTo(map);}
  for(const x of data){
-   const m=L.marker([x.lat,x.lng],{icon:pinIcon(x),title:x.name,alt:x.name,keyboard:true});
+   dataIndex.set(x.uai,x);const m=L.marker([x.lat,x.lng],{icon:pinIcon(x),title:x.name,alt:x.name,keyboard:true,uai:x.uai});
    m.bindTooltip(esc(x.name)+'<br><small>'+esc(x.city)+'</small>',{direction:'top',offset:[0,-8]});
    m.on('click',()=>selectIFSI(x.uai,false));markers.set(x.uai,m);
  }
 }
-function pinIcon(x){return L.divIcon({html:`<span class="pin${selected===x.uai?' selected':''}${window.crmMode==='commercial'?' commercial-pin crm-'+(x.crm?.status||'unknown'):''}${window.crmMode==='commercial'&&x.crm?.client?' is-client':''}" style="background:${markerColor(x)}"></span>`,className:'marker',iconSize:[17,17],iconAnchor:[8.5,8.5]});}
+function pinIcon(x){return L.divIcon({html:`<span class="pin${selected===x.uai?' selected':''}${window.crmMode==='commercial'?' commercial-pin crm-'+(x.crm?.status||'unknown'):''}${x.crm?.client?' is-client':''}${window.crmClientsOnly&&!x.crm?.client?' is-dimmed':''}" style="background:${markerColor(x)}"></span>`,className:'marker',iconSize:[17,17],iconAnchor:[8.5,8.5]});}
 function hideDetail(){if(selected&&map){const old=selected;selected=null;markers.get(old)?.setIcon(pinIcon(data.find(x=>x.uai===old)));}else selected=null;$('detail').hidden=true;document.querySelectorAll('.resultcard.selected').forEach(el=>el.classList.remove('selected'));history.replaceState(null,'',location.pathname+location.search);}
 function selectIFSI(uai,move=true){
  const x=data.find(x=>x.uai===uai);if(!x)return;
@@ -92,6 +94,7 @@ function applyFilters(fit=false){
  renderList();$('results').scrollTop=0;
  if(cluster){cluster.clearLayers();const ms=filtered.map(x=>markers.get(x.uai));if(cluster.addLayers)cluster.addLayers(ms);else ms.forEach(m=>cluster.addLayer(m));}
  if(fit&&filtered.length)fitResults();
+ window.crmAfterFilter?.();
 }
 function goPlace(name){if(!map)return;const p=places[name];if(p.bounds)map.fitBounds(p.bounds,{padding:[45,75]});else map.flyTo(p.center,p.zoom,{duration:.8});document.querySelectorAll('[data-place]').forEach(b=>b.classList.toggle('active',b.dataset.place===name));}
 function toggleLegend(open){$('legend').hidden=!open;$('legendbutton').setAttribute('aria-expanded',String(open));}
