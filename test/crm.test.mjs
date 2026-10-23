@@ -113,3 +113,14 @@ test('a customer with explicit UAI wins over a second customer inferred by name'
  const [row]=buildRows([institute],[explicit,inferred],{},{});
  assert.equal(row.match.company.id,explicit.id);assert.equal(row.match.rule,'uai');
 });
+test('a customer IFS fiche matches the only institute of its commune, never one of several',async()=>{
+ const {buildRows}=await import('../lib/crm.mjs');
+ const client={id:'9',uai:'',name:'IFS du CH de Saverne',city:'67703 Saverne Cedex',zip:'',lifecycle:'customer'};
+ const saverne={uai:'0670001A',name:'IFSI de Saverne (67)',city:'Saverne'};
+ const [row]=buildRows([saverne],[client],{},{});
+ assert.equal(row.match.kind,'automatic');assert.equal(row.client,true);assert.match(row.match.reason,/seul IFSI de la commune/);
+ const [a,b]=buildRows([saverne,{uai:'0670002B',name:'IFSI Croix-Rouge Saverne',city:'Saverne'}],[client],{},{});
+ assert.notEqual(a.match.kind,'automatic');assert.notEqual(b.match.kind,'automatic');
+ const [prospect]=buildRows([saverne],[{...client,lifecycle:'opportunity'}],{},{});
+ assert.notEqual(prospect.match.kind,'automatic');
+});
