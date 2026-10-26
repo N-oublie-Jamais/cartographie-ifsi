@@ -36,3 +36,9 @@ test('known customers without UAI or deals are loaded across pages with web iden
  assert.deepEqual(bodies[1].filterGroups[0].filters[0].values,['customer','evangelist']);
  assert.equal(bodies[2].after,'next');
 });
+test('companies without deals do not make the deal read partial, but other errors still do',async()=>{
+ const reply=(errors)=>async(url)=>Response.json(url.includes('/associations/')?{status:'COMPLETE_WITH_ERRORS',errors,results:[{from:{id:'1'},to:[{toObjectId:99}]}]}:{results:[{id:'99',properties:{dealname:'Test',hs_is_closed:'false'}}]});
+ const ok=await new HubSpot('secret','6008870',reply([{status:'error',category:'OBJECT_NOT_FOUND',message:'No associations found for object 2'}])).loadDeals(['1','2']);
+ assert.equal(ok['1'][0].id,'99');assert.deepEqual(ok['2'],[]);
+ await assert.rejects(new HubSpot('secret','6008870',reply([{status:'error',category:'INTERNAL_ERROR',message:'boom'}])).loadDeals(['1','2']),/partielle \(étape \/crm\/v#\/associations\/companies\/deals\/batch\/read\)/);
+});
